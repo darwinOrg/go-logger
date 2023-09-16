@@ -1,5 +1,5 @@
-github.com/darwinOrg/go-common v0.0.2 h1:+0X4TWwykSu4c6fqLu/UytGRp0DwGdK/j+L8FyBiNDc=
-github.com/darwinOrg/go-common v0.0.2/go.mod h1:KdYZsa9oJvg/EoxlyHjzBPoOLNGP48XPwSEvlBuwnuU=
+github.com/darwinOrg/go-common v0.0.6 h1:TRUglYGWEmRPHGhoZKa6M+EsmG/3F5/eJ5lHYlD3wNg=
+github.com/darwinOrg/go-common v0.0.6/go.mod h1:pItL/4ZV0bU64N2qD9ACpvDlYjeomAbheIzPXKqbb88=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
