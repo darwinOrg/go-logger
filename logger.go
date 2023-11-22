@@ -8,7 +8,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
+	"runtime"
 	"sort"
+	"strconv"
 )
 
 const (
@@ -75,83 +77,83 @@ func NewDgLogger(level string, timestampFormat string, out io.Writer) *DgLogger 
 }
 
 func (dl *DgLogger) Debugf(ctx *dgctx.DgContext, format string, args ...any) {
-	dl.withFields(ctx).Debugf(format, args...)
+	dl.withFields(ctx, false).Debugf(format, args...)
 }
 
 func (dl *DgLogger) Infof(ctx *dgctx.DgContext, format string, args ...any) {
-	dl.withFields(ctx).Infof(format, args...)
+	dl.withFields(ctx, false).Infof(format, args...)
 }
 
 func (dl *DgLogger) Warnf(ctx *dgctx.DgContext, format string, args ...any) {
-	dl.withFields(ctx).Warnf(format, args...)
+	dl.withFields(ctx, false).Warnf(format, args...)
 }
 
 func (dl *DgLogger) Errorf(ctx *dgctx.DgContext, format string, args ...any) {
-	dl.withFields(ctx).Errorf(format, args...)
+	dl.withFields(ctx, true).Errorf(format, args...)
 }
 
 func (dl *DgLogger) Fatalf(ctx *dgctx.DgContext, format string, args ...any) {
-	dl.withFields(ctx).Fatalf(format, args...)
+	dl.withFields(ctx, true).Fatalf(format, args...)
 }
 
 func (dl *DgLogger) Panicf(ctx *dgctx.DgContext, format string, args ...any) {
-	dl.withFields(ctx).Panicf(format, args...)
+	dl.withFields(ctx, true).Panicf(format, args...)
 }
 
 func (dl *DgLogger) Debug(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx).Debug(args...)
+	dl.withFields(ctx, false).Debug(args...)
 }
 
 func (dl *DgLogger) Info(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx).Info(args...)
+	dl.withFields(ctx, false).Info(args...)
 }
 
 func (dl *DgLogger) Warn(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx).Warn(args...)
+	dl.withFields(ctx, false).Warn(args...)
 }
 
 func (dl *DgLogger) Error(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx).Error(args...)
+	dl.withFields(ctx, true).Error(args...)
 }
 
 func (dl *DgLogger) Fatal(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx).Fatal(args...)
+	dl.withFields(ctx, true).Fatal(args...)
 }
 
 func (dl *DgLogger) Panic(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx).Panic(args...)
+	dl.withFields(ctx, true).Panic(args...)
 }
 
 func (dl *DgLogger) Debugln(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx).Debugln(args...)
+	dl.withFields(ctx, false).Debugln(args...)
 }
 
 func (dl *DgLogger) Infoln(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx).Infoln(args...)
+	dl.withFields(ctx, false).Infoln(args...)
 }
 
 func (dl *DgLogger) Warnln(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx).Warnln(args...)
+	dl.withFields(ctx, false).Warnln(args...)
 }
 
 func (dl *DgLogger) Errorln(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx).Errorln(args...)
+	dl.withFields(ctx, true).Errorln(args...)
 }
 
 func (dl *DgLogger) Fatalln(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx).Fatalln(args...)
+	dl.withFields(ctx, true).Fatalln(args...)
 }
 
 func (dl *DgLogger) Panicln(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx).Panicln(args...)
+	dl.withFields(ctx, true).Panicln(args...)
 }
 
 func (dl *DgLogger) SetLevel(level string) {
 	dl.log.SetLevel(parseLevel(level))
 }
 
-func (dl *DgLogger) withFields(ctx *dgctx.DgContext) *log.Entry {
-	if ctx.GetExtraValue(logEntryKey) != nil {
+func (dl *DgLogger) withFields(ctx *dgctx.DgContext, printFileLine bool) *log.Entry {
+	if !printFileLine && ctx.GetExtraValue(logEntryKey) != nil {
 		return ctx.GetExtraValue(logEntryKey).(*log.Entry)
 	}
 
@@ -159,14 +161,24 @@ func (dl *DgLogger) withFields(ctx *dgctx.DgContext) *log.Entry {
 		ctx.GoId = dgsys.QuickGetGoRoutineId()
 	}
 
-	entry := dl.log.WithFields(log.Fields{
-		constants.GoId:    ctx.GoId,
-		constants.TraceId: ctx.TraceId,
-	})
+	if printFileLine {
+		_, file, line, _ := runtime.Caller(3)
 
-	ctx.SetExtraKeyValue(logEntryKey, entry)
+		return dl.log.WithFields(log.Fields{
+			constants.GoId:    ctx.GoId,
+			constants.TraceId: ctx.TraceId,
+			"file":            file,
+			"line":            strconv.Itoa(line),
+		})
+	} else {
+		entry := dl.log.WithFields(log.Fields{
+			constants.GoId:    ctx.GoId,
+			constants.TraceId: ctx.TraceId,
+		})
 
-	return entry
+		ctx.SetExtraKeyValue(logEntryKey, entry)
+		return entry
+	}
 }
 
 func parseLevel(level string) logrus.Level {

@@ -21,7 +21,15 @@ func ConditionFatalf(condition bool, format string, args ...any) {
 	}
 }
 
-func OnlyProdFatal(args ...any) {
+func ConditionFatalln(condition bool, args ...any) {
+	if condition {
+		logrus.Fatalln(args...)
+	} else {
+		logrus.Errorln(args...)
+	}
+}
+
+func ProdFatal(args ...any) {
 	ConditionFatal(dgsys.IsProd(), args...)
 }
 
@@ -29,10 +37,18 @@ func QaOrProdFatal(args ...any) {
 	ConditionFatal(dgsys.IsQa() || dgsys.IsProd(), args...)
 }
 
-func OnlyProdFatalf(format string, args ...any) {
+func ProdFatalf(format string, args ...any) {
 	ConditionFatalf(dgsys.IsProd(), format, args...)
 }
 
 func QaOrProdFatalf(format string, args ...any) {
 	ConditionFatalf(dgsys.IsQa() || dgsys.IsProd(), format, args...)
+}
+
+func ProdFatalln(args ...any) {
+	ConditionFatalln(dgsys.IsProd(), args...)
+}
+
+func QaOrProdFatalln(args ...any) {
+	ConditionFatalln(dgsys.IsQa() || dgsys.IsProd(), args...)
 }
