@@ -16,3 +16,7 @@ func ConditionFatalf(condition bool, format string, args ...any) {
 func OnlyProdFatalf(format string, args ...any) {
 	ConditionFatalf(dgsys.IsProd(), format, args...)
 }
+
+func QaOrProdFatalf(format string, args ...any) {
+	ConditionFatalf(dgsys.IsQa() || dgsys.IsProd(), format, args...)
+}
