@@ -52,7 +52,7 @@ func DefaultDgLogger() *DgLogger {
 }
 
 func NewDgLogger(level string, timestampFormat string, out io.Writer) *DgLogger {
-	log := &logrus.Logger{
+	l := &logrus.Logger{
 		Out: out,
 		Formatter: &logrus.TextFormatter{
 			DisableQuote:           true,
@@ -73,7 +73,7 @@ func NewDgLogger(level string, timestampFormat string, out io.Writer) *DgLogger 
 		Level: parseLevel(level),
 	}
 
-	return &DgLogger{log: log}
+	return &DgLogger{log: l}
 }
 
 func (dl *DgLogger) Debugf(ctx *dgctx.DgContext, format string, args ...any) {
