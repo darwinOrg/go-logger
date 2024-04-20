@@ -52,7 +52,7 @@ func DefaultDgLogger() *DgLogger {
 }
 
 func NewDgLogger(level string, timestampFormat string, out io.Writer) *DgLogger {
-	l := &logrus.Logger{
+	return &DgLogger{log: &logrus.Logger{
 		Out: out,
 		Formatter: &logrus.TextFormatter{
 			DisableQuote:           true,
@@ -71,9 +71,7 @@ func NewDgLogger(level string, timestampFormat string, out io.Writer) *DgLogger 
 			},
 		},
 		Level: parseLevel(level),
-	}
-
-	return &DgLogger{log: l}
+	}}
 }
 
 func (dl *DgLogger) Debugf(ctx *dgctx.DgContext, format string, args ...any) {
@@ -157,25 +155,19 @@ func (dl *DgLogger) withFields(ctx *dgctx.DgContext, printFileLine bool) *log.En
 		return ctx.GetExtraValue(logEntryKey).(*log.Entry)
 	}
 
-	if ctx.GoId == 0 {
-		ctx.GoId = dgsys.QuickGetGoRoutineId()
+	fields := log.Fields{constants.TraceId: ctx.TraceId}
+	if ctx.UserId > 0 {
+		fields[constants.UID] = ctx.UserId
 	}
 
 	if printFileLine {
 		_, file, line, _ := runtime.Caller(3)
+		fields["file"] = file
+		fields["line"] = strconv.Itoa(line)
 
-		return dl.log.WithFields(log.Fields{
-			constants.GoId:    ctx.GoId,
-			constants.TraceId: ctx.TraceId,
-			"file":            file,
-			"line":            strconv.Itoa(line),
-		})
+		return dl.log.WithFields(fields)
 	} else {
-		entry := dl.log.WithFields(log.Fields{
-			constants.GoId:    ctx.GoId,
-			constants.TraceId: ctx.TraceId,
-		})
-
+		entry := dl.log.WithFields(fields)
 		ctx.SetExtraKeyValue(logEntryKey, entry)
 		return entry
 	}
