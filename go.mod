@@ -10,6 +10,6 @@ require (
 )
 
 require (
-	github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421 // indirect
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	golang.org/x/sys v0.22.0 // indirect
 )
