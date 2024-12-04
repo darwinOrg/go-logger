@@ -4,6 +4,7 @@ import (
 	"github.com/darwinOrg/go-common/constants"
 	dgctx "github.com/darwinOrg/go-common/context"
 	dgsys "github.com/darwinOrg/go-common/sys"
+	"github.com/natefinch/lumberjack"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"io"
@@ -36,6 +37,11 @@ const (
 
 const (
 	DefaultTimestampFormat = "2006-01-02 15:04:05.999999"
+	DefaultFilename        = "app.log" // 日志文件路径
+	DefaultMaxSize         = 100       // 每个日志文件的最大尺寸（MB）
+	DefaultMaxBackups      = 10        // 保留旧日志文件的最大数量
+	DefaultMaxAge          = 30        // 保留旧日志文件的最大天数
+	DefaultCompress        = true      // 是否压缩/归档旧的日志文件
 	logEntryKey            = "logEntry"
 )
 
@@ -49,6 +55,23 @@ func DefaultDgLogger() *DgLogger {
 		level = InfoLevel
 	}
 	return NewDgLogger(level, DefaultTimestampFormat, os.Stdout)
+}
+
+func DefaultRotatedLogger() *DgLogger {
+	level := DebugLevel
+	if dgsys.IsProd() {
+		level = InfoLevel
+	}
+
+	lj := &lumberjack.Logger{
+		Filename:   DefaultFilename,
+		MaxSize:    DefaultMaxSize,
+		MaxBackups: DefaultMaxBackups,
+		MaxAge:     DefaultMaxAge,
+		Compress:   DefaultCompress,
+	}
+
+	return NewDgLogger(level, DefaultTimestampFormat, lj)
 }
 
 func NewDgLogger(level string, timestampFormat string, out io.Writer) *DgLogger {
