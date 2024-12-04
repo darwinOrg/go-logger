@@ -50,28 +50,15 @@ type DgLogger struct {
 }
 
 func DefaultDgLogger() *DgLogger {
-	level := DebugLevel
-	if dgsys.IsProd() {
-		level = InfoLevel
-	}
-	return NewDgLogger(level, DefaultTimestampFormat, os.Stdout)
+	return NewDgLogger(getDefaultLogLevel(), DefaultTimestampFormat, os.Stdout)
 }
 
 func DefaultRotatedLogger() *DgLogger {
-	level := DebugLevel
-	if dgsys.IsProd() {
-		level = InfoLevel
-	}
+	return NewDgLogger(getDefaultLogLevel(), DefaultTimestampFormat, buildDefaultRotatedLogWriter())
+}
 
-	lj := &lumberjack.Logger{
-		Filename:   DefaultFilename,
-		MaxSize:    DefaultMaxSize,
-		MaxBackups: DefaultMaxBackups,
-		MaxAge:     DefaultMaxAge,
-		Compress:   DefaultCompress,
-	}
-
-	return NewDgLogger(level, DefaultTimestampFormat, lj)
+func DefaultMultiWriterLogger() *DgLogger {
+	return NewDgLogger(getDefaultLogLevel(), DefaultTimestampFormat, io.MultiWriter(os.Stdout, buildDefaultRotatedLogWriter()))
 }
 
 func NewDgLogger(level string, timestampFormat string, out io.Writer) *DgLogger {
@@ -95,6 +82,24 @@ func NewDgLogger(level string, timestampFormat string, out io.Writer) *DgLogger 
 		},
 		Level: parseLevel(level),
 	}}
+}
+
+func getDefaultLogLevel() string {
+	if dgsys.IsProd() {
+		return InfoLevel
+	}
+
+	return DebugLevel
+}
+
+func buildDefaultRotatedLogWriter() io.Writer {
+	return &lumberjack.Logger{
+		Filename:   DefaultFilename,
+		MaxSize:    DefaultMaxSize,
+		MaxBackups: DefaultMaxBackups,
+		MaxAge:     DefaultMaxAge,
+		Compress:   DefaultCompress,
+	}
 }
 
 func (dl *DgLogger) Debugf(ctx *dgctx.DgContext, format string, args ...any) {
