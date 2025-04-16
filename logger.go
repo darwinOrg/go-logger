@@ -8,6 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"io"
+	"maps"
 	"os"
 	"runtime"
 	"sort"
@@ -42,6 +43,7 @@ const (
 	DefaultMaxBackups      = 10        // 保留旧日志文件的最大数量
 	DefaultMaxAge          = 30        // 保留旧日志文件的最大天数
 	DefaultCompress        = true      // 是否压缩/归档旧的日志文件
+	appendFieldsKey        = "appendLogFields"
 	logEntryKey            = "logEntry"
 )
 
@@ -178,6 +180,10 @@ func (dl *DgLogger) SetLevel(level string) {
 	dl.log.SetLevel(parseLevel(level))
 }
 
+func AppendFields(ctx *dgctx.DgContext, fields map[string]any) {
+	ctx.SetExtraKeyValue(appendFieldsKey, fields)
+}
+
 func (dl *DgLogger) withFields(ctx *dgctx.DgContext, printFileLine bool) *log.Entry {
 	if !printFileLine && ctx.GetExtraValue(logEntryKey) != nil {
 		return ctx.GetExtraValue(logEntryKey).(*log.Entry)
@@ -186,6 +192,14 @@ func (dl *DgLogger) withFields(ctx *dgctx.DgContext, printFileLine bool) *log.En
 	fields := log.Fields{constants.TraceId: ctx.TraceId}
 	if ctx.UserId > 0 {
 		fields[constants.UID] = ctx.UserId
+	}
+
+	appendFields := ctx.GetExtraValue(appendFieldsKey)
+	if appendFields != nil {
+		fds := appendFields.(map[string]any)
+		if len(fds) > 0 {
+			maps.Copy(fields, fds)
+		}
 	}
 
 	if printFileLine {

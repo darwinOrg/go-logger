@@ -6,7 +6,9 @@ import (
 )
 
 func TestDebugf(t *testing.T) {
-	Debugf(dgctx.SimpleDgContext(), "%s, %d", "abc", int64(789))
+	ctx := dgctx.SimpleDgContext()
+	AppendFields(ctx, map[string]any{"key": "value"})
+	Debugf(ctx, "%s, %d", "abc", int64(789))
 }
 
 func TestInfof(t *testing.T) {
