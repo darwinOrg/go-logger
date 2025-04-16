@@ -43,7 +43,7 @@ const (
 	DefaultMaxBackups      = 10        // 保留旧日志文件的最大数量
 	DefaultMaxAge          = 30        // 保留旧日志文件的最大天数
 	DefaultCompress        = true      // 是否压缩/归档旧的日志文件
-	appendFieldsKey        = "appendLogFields"
+	extraFieldsKey         = "extraLogFields"
 	logEntryKey            = "logEntry"
 )
 
@@ -180,8 +180,8 @@ func (dl *DgLogger) SetLevel(level string) {
 	dl.log.SetLevel(parseLevel(level))
 }
 
-func AppendFields(ctx *dgctx.DgContext, fields map[string]any) {
-	ctx.SetExtraKeyValue(appendFieldsKey, fields)
+func SetExtraFields(ctx *dgctx.DgContext, fields map[string]any) {
+	ctx.SetExtraKeyValue(extraFieldsKey, fields)
 }
 
 func (dl *DgLogger) withFields(ctx *dgctx.DgContext, printFileLine bool) *log.Entry {
@@ -194,9 +194,9 @@ func (dl *DgLogger) withFields(ctx *dgctx.DgContext, printFileLine bool) *log.En
 		fields[constants.UID] = ctx.UserId
 	}
 
-	appendFields := ctx.GetExtraValue(appendFieldsKey)
-	if appendFields != nil {
-		fds := appendFields.(map[string]any)
+	extraFields := ctx.GetExtraValue(extraFieldsKey)
+	if extraFields != nil {
+		fds := extraFields.(map[string]any)
 		if len(fds) > 0 {
 			maps.Copy(fields, fds)
 		}

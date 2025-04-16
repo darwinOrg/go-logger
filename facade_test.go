@@ -7,7 +7,7 @@ import (
 
 func TestDebugf(t *testing.T) {
 	ctx := dgctx.SimpleDgContext()
-	AppendFields(ctx, map[string]any{"key": "value"})
+	SetExtraFields(ctx, map[string]any{"key": "value"})
 	Debugf(ctx, "%s, %d", "abc", int64(789))
 }
 
