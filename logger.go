@@ -209,7 +209,7 @@ func SetExtraFields(ctx *dgctx.DgContext, fields map[string]any) {
 }
 
 func (dl *DgLogger) withFields(ctx *dgctx.DgContext, fields map[string]any, printFileLine bool) *log.Entry {
-	if !printFileLine && ctx.GetExtraValue(logEntryKey) != nil {
+	if !printFileLine && len(fields) == 0 && ctx.GetExtraValue(logEntryKey) != nil {
 		return ctx.GetExtraValue(logEntryKey).(*log.Entry)
 	}
 
@@ -235,6 +235,8 @@ func (dl *DgLogger) withFields(ctx *dgctx.DgContext, fields map[string]any, prin
 		allFields["file"] = file
 		allFields["line"] = strconv.Itoa(line)
 
+		return dl.log.WithFields(allFields)
+	} else if len(fields) > 0 {
 		return dl.log.WithFields(allFields)
 	} else {
 		entry := dl.log.WithFields(allFields)
