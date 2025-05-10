@@ -105,75 +105,99 @@ func buildDefaultRotatedLogWriter() io.Writer {
 }
 
 func (dl *DgLogger) Debugf(ctx *dgctx.DgContext, format string, args ...any) {
-	dl.withFields(ctx, false).Debugf(format, args...)
+	dl.withFields(ctx, nil, false).Debugf(format, args...)
 }
 
 func (dl *DgLogger) Infof(ctx *dgctx.DgContext, format string, args ...any) {
-	dl.withFields(ctx, false).Infof(format, args...)
+	dl.withFields(ctx, nil, false).Infof(format, args...)
 }
 
 func (dl *DgLogger) Warnf(ctx *dgctx.DgContext, format string, args ...any) {
-	dl.withFields(ctx, false).Warnf(format, args...)
+	dl.withFields(ctx, nil, false).Warnf(format, args...)
 }
 
 func (dl *DgLogger) Errorf(ctx *dgctx.DgContext, format string, args ...any) {
-	dl.withFields(ctx, true).Errorf(format, args...)
+	dl.withFields(ctx, nil, true).Errorf(format, args...)
 }
 
 func (dl *DgLogger) Fatalf(ctx *dgctx.DgContext, format string, args ...any) {
-	dl.withFields(ctx, true).Fatalf(format, args...)
+	dl.withFields(ctx, nil, true).Fatalf(format, args...)
 }
 
 func (dl *DgLogger) Panicf(ctx *dgctx.DgContext, format string, args ...any) {
-	dl.withFields(ctx, true).Panicf(format, args...)
+	dl.withFields(ctx, nil, true).Panicf(format, args...)
 }
 
 func (dl *DgLogger) Debug(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx, false).Debug(args...)
+	dl.withFields(ctx, nil, false).Debug(args...)
 }
 
 func (dl *DgLogger) Info(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx, false).Info(args...)
+	dl.withFields(ctx, nil, false).Info(args...)
 }
 
 func (dl *DgLogger) Warn(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx, false).Warn(args...)
+	dl.withFields(ctx, nil, false).Warn(args...)
 }
 
 func (dl *DgLogger) Error(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx, true).Error(args...)
+	dl.withFields(ctx, nil, true).Error(args...)
 }
 
 func (dl *DgLogger) Fatal(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx, true).Fatal(args...)
+	dl.withFields(ctx, nil, true).Fatal(args...)
 }
 
 func (dl *DgLogger) Panic(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx, true).Panic(args...)
+	dl.withFields(ctx, nil, true).Panic(args...)
 }
 
 func (dl *DgLogger) Debugln(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx, false).Debugln(args...)
+	dl.withFields(ctx, nil, false).Debugln(args...)
 }
 
 func (dl *DgLogger) Infoln(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx, false).Infoln(args...)
+	dl.withFields(ctx, nil, false).Infoln(args...)
 }
 
 func (dl *DgLogger) Warnln(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx, false).Warnln(args...)
+	dl.withFields(ctx, nil, false).Warnln(args...)
 }
 
 func (dl *DgLogger) Errorln(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx, true).Errorln(args...)
+	dl.withFields(ctx, nil, true).Errorln(args...)
 }
 
 func (dl *DgLogger) Fatalln(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx, true).Fatalln(args...)
+	dl.withFields(ctx, nil, true).Fatalln(args...)
 }
 
 func (dl *DgLogger) Panicln(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx, true).Panicln(args...)
+	dl.withFields(ctx, nil, true).Panicln(args...)
+}
+
+func (dl *DgLogger) Debugw(ctx *dgctx.DgContext, content string, fields map[string]any) {
+	dl.withFields(ctx, fields, false).Debug(content)
+}
+
+func (dl *DgLogger) Infow(ctx *dgctx.DgContext, content string, fields map[string]any) {
+	dl.withFields(ctx, fields, false).Info(content)
+}
+
+func (dl *DgLogger) Warnw(ctx *dgctx.DgContext, content string, fields map[string]any) {
+	dl.withFields(ctx, fields, false).Warn(content)
+}
+
+func (dl *DgLogger) Errorw(ctx *dgctx.DgContext, content string, fields map[string]any) {
+	dl.withFields(ctx, fields, true).Error(content)
+}
+
+func (dl *DgLogger) Fatalw(ctx *dgctx.DgContext, content string, fields map[string]any) {
+	dl.withFields(ctx, fields, true).Fatal(content)
+}
+
+func (dl *DgLogger) Panicw(ctx *dgctx.DgContext, content string, fields map[string]any) {
+	dl.withFields(ctx, fields, true).Panic(content)
 }
 
 func (dl *DgLogger) SetLevel(level string) {
@@ -184,32 +208,36 @@ func SetExtraFields(ctx *dgctx.DgContext, fields map[string]any) {
 	ctx.SetExtraKeyValue(extraFieldsKey, fields)
 }
 
-func (dl *DgLogger) withFields(ctx *dgctx.DgContext, printFileLine bool) *log.Entry {
+func (dl *DgLogger) withFields(ctx *dgctx.DgContext, fields map[string]any, printFileLine bool) *log.Entry {
 	if !printFileLine && ctx.GetExtraValue(logEntryKey) != nil {
 		return ctx.GetExtraValue(logEntryKey).(*log.Entry)
 	}
 
-	fields := log.Fields{constants.TraceId: ctx.TraceId}
+	allFields := log.Fields{constants.TraceId: ctx.TraceId}
 	if ctx.UserId > 0 {
-		fields[constants.UID] = ctx.UserId
+		allFields[constants.UID] = ctx.UserId
+	}
+
+	if len(fields) > 0 {
+		maps.Copy(allFields, fields)
 	}
 
 	extraFields := ctx.GetExtraValue(extraFieldsKey)
 	if extraFields != nil {
 		fds := extraFields.(map[string]any)
 		if len(fds) > 0 {
-			maps.Copy(fields, fds)
+			maps.Copy(allFields, fds)
 		}
 	}
 
 	if printFileLine {
 		_, file, line, _ := runtime.Caller(3)
-		fields["file"] = file
-		fields["line"] = strconv.Itoa(line)
+		allFields["file"] = file
+		allFields["line"] = strconv.Itoa(line)
 
-		return dl.log.WithFields(fields)
+		return dl.log.WithFields(allFields)
 	} else {
-		entry := dl.log.WithFields(fields)
+		entry := dl.log.WithFields(allFields)
 		ctx.SetExtraKeyValue(logEntryKey, entry)
 		return entry
 	}

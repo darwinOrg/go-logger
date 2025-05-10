@@ -75,3 +75,40 @@ func Fatalln(ctx *dgctx.DgContext, args ...any) {
 func Panicln(ctx *dgctx.DgContext, args ...any) {
 	GlobalDgLogger.Panicln(ctx, args...)
 }
+
+func Debugw(ctx *dgctx.DgContext, format string, args ...any) {
+	GlobalDgLogger.Debugf(ctx, format, args...)
+}
+
+func Infow(ctx *dgctx.DgContext, content string, args ...any) {
+	GlobalDgLogger.Infow(ctx, content, buildFields(args))
+}
+
+func Warnw(ctx *dgctx.DgContext, content string, args ...any) {
+	GlobalDgLogger.Warnw(ctx, content, buildFields(args))
+}
+
+func Errorw(ctx *dgctx.DgContext, content string, args ...any) {
+	GlobalDgLogger.Errorw(ctx, content, buildFields(args))
+}
+
+func Fatalw(ctx *dgctx.DgContext, content string, args ...any) {
+	GlobalDgLogger.Fatalw(ctx, content, buildFields(args))
+}
+
+func Panicw(ctx *dgctx.DgContext, content string, args ...any) {
+	GlobalDgLogger.Panicw(ctx, content, buildFields(args))
+}
+
+func buildFields(args []any) map[string]any {
+	if len(args)%2 == 1 {
+		args = args[:len(args)-1]
+	}
+
+	argsLen := len(args)
+	fields := make(map[string]any)
+	for i := 0; i < argsLen; i += 2 {
+		fields[args[i].(string)] = args[i+1]
+	}
+	return fields
+}
