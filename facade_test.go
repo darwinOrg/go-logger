@@ -1,6 +1,7 @@
 package dglogger
 
 import (
+	"errors"
 	dgctx "github.com/darwinOrg/go-common/context"
 	"testing"
 )
@@ -27,5 +28,5 @@ func TestLogEntry(t *testing.T) {
 	ctx := dgctx.SimpleDgContext()
 	Info(ctx, "erf", int64(789))
 	Infoln(ctx, "abc", int64(456))
-	Infow(ctx, "hij", "key1", 1, "key2", "2")
+	Infow(ctx, "hij", "key1", 1, "key2", "2", "err", errors.New("illegal"))
 }

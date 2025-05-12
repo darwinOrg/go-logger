@@ -108,7 +108,9 @@ func buildFields(args []any) map[string]any {
 	argsLen := len(args)
 	fields := make(map[string]any)
 	for i := 0; i < argsLen; i += 2 {
-		fields[args[i].(string)] = args[i+1]
+		if key, ok := args[i].(string); ok && key != "" {
+			fields[key] = args[i+1]
+		}
 	}
 	return fields
 }
