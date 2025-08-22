@@ -1,10 +1,11 @@
 package dglogger
 
 import (
-	jsoniter "github.com/json-iterator/go"
-	"github.com/modern-go/reflect2"
 	"reflect"
 	"unsafe"
+
+	jsoniter "github.com/json-iterator/go"
+	"github.com/modern-go/reflect2"
 )
 
 var jsonLogger jsoniter.API

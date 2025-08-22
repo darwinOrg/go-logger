@@ -1,18 +1,19 @@
 package dglogger
 
 import (
+	"fmt"
+	"io"
+	"os"
+	"runtime"
+	"strconv"
+
 	"github.com/darwinOrg/go-common/constants"
 	dgctx "github.com/darwinOrg/go-common/context"
 	dgsys "github.com/darwinOrg/go-common/sys"
+	"github.com/darwinOrg/go-common/utils"
 	"github.com/natefinch/lumberjack"
-	"github.com/sirupsen/logrus"
-	log "github.com/sirupsen/logrus"
-	"io"
-	"maps"
-	"os"
-	"runtime"
-	"sort"
-	"strconv"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 const (
@@ -44,11 +45,10 @@ const (
 	DefaultMaxAge          = 30        // 保留旧日志文件的最大天数
 	DefaultCompress        = true      // 是否压缩/归档旧的日志文件
 	extraFieldsKey         = "extraLogFields"
-	logEntryKey            = "logEntry"
 )
 
 type DgLogger struct {
-	log *logrus.Logger
+	log *zap.Logger
 }
 
 func DefaultDgLogger() *DgLogger {
@@ -64,34 +64,29 @@ func DefaultMultiWriterLogger() *DgLogger {
 }
 
 func NewDgLogger(level string, timestampFormat string, out io.Writer) *DgLogger {
-	return &DgLogger{log: &logrus.Logger{
-		Out: out,
-		Formatter: &logrus.TextFormatter{
-			DisableQuote:           true,
-			FullTimestamp:          true,
-			TimestampFormat:        timestampFormat,
-			DisableSorting:         true,
-			DisableLevelTruncation: true,
-			PadLevelText:           false,
-			SortingFunc: func(strings []string) {
-				sort.Slice(strings, func(i, j int) bool {
-					if strings[i] == "level" {
-						return true
-					}
-					return false
-				})
-			},
-		},
-		Level: parseLevel(level),
-	}}
+	// 创建 zap 配置
+	config := zap.NewProductionEncoderConfig()
+	config.EncodeTime = zapcore.TimeEncoderOfLayout(timestampFormat)
+	config.EncodeLevel = zapcore.CapitalLevelEncoder
+
+	// 创建 encoder
+	encoder := zapcore.NewConsoleEncoder(config)
+
+	// 创建 core
+	core := zapcore.NewCore(
+		encoder,
+		zapcore.AddSync(out),
+		parseLevel(level),
+	)
+
+	// 创建 logger
+	logger := zap.New(core, zap.AddCallerSkip(1))
+
+	return &DgLogger{log: logger}
 }
 
 func getDefaultLogLevel() string {
-	if dgsys.IsProd() {
-		return InfoLevel
-	}
-
-	return DebugLevel
+	return utils.IfReturn(dgsys.IsProd(), InfoLevel, DebugLevel)
 }
 
 func buildDefaultRotatedLogWriter() io.Writer {
@@ -105,91 +100,123 @@ func buildDefaultRotatedLogWriter() io.Writer {
 }
 
 func (dl *DgLogger) Debugf(ctx *dgctx.DgContext, format string, args ...any) {
-	dl.withFields(ctx, nil, false).Debugf(format, args...)
+	if dl.log.Core().Enabled(zap.DebugLevel) {
+		dl.withFields(ctx, nil, false).Debug(fmt.Sprintf(format, args...))
+	}
 }
 
 func (dl *DgLogger) Infof(ctx *dgctx.DgContext, format string, args ...any) {
-	dl.withFields(ctx, nil, false).Infof(format, args...)
+	if dl.log.Core().Enabled(zap.InfoLevel) {
+		dl.withFields(ctx, nil, false).Info(fmt.Sprintf(format, args...))
+	}
 }
 
 func (dl *DgLogger) Warnf(ctx *dgctx.DgContext, format string, args ...any) {
-	dl.withFields(ctx, nil, false).Warnf(format, args...)
+	if dl.log.Core().Enabled(zap.WarnLevel) {
+		dl.withFields(ctx, nil, false).Warn(fmt.Sprintf(format, args...))
+	}
 }
 
 func (dl *DgLogger) Errorf(ctx *dgctx.DgContext, format string, args ...any) {
-	dl.withFields(ctx, nil, true).Errorf(format, args...)
+	if dl.log.Core().Enabled(zap.ErrorLevel) {
+		dl.withFields(ctx, nil, true).Error(fmt.Sprintf(format, args...))
+	}
 }
 
 func (dl *DgLogger) Fatalf(ctx *dgctx.DgContext, format string, args ...any) {
-	dl.withFields(ctx, nil, true).Fatalf(format, args...)
+	dl.withFields(ctx, nil, true).Fatal(fmt.Sprintf(format, args...))
 }
 
 func (dl *DgLogger) Panicf(ctx *dgctx.DgContext, format string, args ...any) {
-	dl.withFields(ctx, nil, true).Panicf(format, args...)
+	dl.withFields(ctx, nil, true).Panic(fmt.Sprintf(format, args...))
 }
 
 func (dl *DgLogger) Debug(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx, nil, false).Debug(args...)
+	if dl.log.Core().Enabled(zap.DebugLevel) {
+		dl.withFields(ctx, nil, false).Debug(fmt.Sprint(args...))
+	}
 }
 
 func (dl *DgLogger) Info(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx, nil, false).Info(args...)
+	if dl.log.Core().Enabled(zap.InfoLevel) {
+		dl.withFields(ctx, nil, false).Info(fmt.Sprint(args...))
+	}
 }
 
 func (dl *DgLogger) Warn(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx, nil, false).Warn(args...)
+	if dl.log.Core().Enabled(zap.WarnLevel) {
+		dl.withFields(ctx, nil, false).Warn(fmt.Sprint(args...))
+	}
 }
 
 func (dl *DgLogger) Error(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx, nil, true).Error(args...)
+	if dl.log.Core().Enabled(zap.ErrorLevel) {
+		dl.withFields(ctx, nil, true).Error(fmt.Sprint(args...))
+	}
 }
 
 func (dl *DgLogger) Fatal(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx, nil, true).Fatal(args...)
+	dl.withFields(ctx, nil, true).Fatal(fmt.Sprint(args...))
 }
 
 func (dl *DgLogger) Panic(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx, nil, true).Panic(args...)
+	dl.withFields(ctx, nil, true).Panic(fmt.Sprint(args...))
 }
 
 func (dl *DgLogger) Debugln(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx, nil, false).Debugln(args...)
+	if dl.log.Core().Enabled(zap.DebugLevel) {
+		dl.withFields(ctx, nil, false).Debug(fmt.Sprintln(args...))
+	}
 }
 
 func (dl *DgLogger) Infoln(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx, nil, false).Infoln(args...)
+	if dl.log.Core().Enabled(zap.InfoLevel) {
+		dl.withFields(ctx, nil, false).Info(fmt.Sprintln(args...))
+	}
 }
 
 func (dl *DgLogger) Warnln(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx, nil, false).Warnln(args...)
+	if dl.log.Core().Enabled(zap.WarnLevel) {
+		dl.withFields(ctx, nil, false).Warn(fmt.Sprintln(args...))
+	}
 }
 
 func (dl *DgLogger) Errorln(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx, nil, true).Errorln(args...)
+	if dl.log.Core().Enabled(zap.ErrorLevel) {
+		dl.withFields(ctx, nil, true).Error(fmt.Sprintln(args...))
+	}
 }
 
 func (dl *DgLogger) Fatalln(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx, nil, true).Fatalln(args...)
+	dl.withFields(ctx, nil, true).Fatal(fmt.Sprintln(args...))
 }
 
 func (dl *DgLogger) Panicln(ctx *dgctx.DgContext, args ...any) {
-	dl.withFields(ctx, nil, true).Panicln(args...)
+	dl.withFields(ctx, nil, true).Panic(fmt.Sprintln(args...))
 }
 
 func (dl *DgLogger) Debugw(ctx *dgctx.DgContext, content string, fields map[string]any) {
-	dl.withFields(ctx, fields, false).Debug(content)
+	if dl.log.Core().Enabled(zap.DebugLevel) {
+		dl.withFields(ctx, fields, false).Debug(content)
+	}
 }
 
 func (dl *DgLogger) Infow(ctx *dgctx.DgContext, content string, fields map[string]any) {
-	dl.withFields(ctx, fields, false).Info(content)
+	if dl.log.Core().Enabled(zap.InfoLevel) {
+		dl.withFields(ctx, fields, false).Info(content)
+	}
 }
 
 func (dl *DgLogger) Warnw(ctx *dgctx.DgContext, content string, fields map[string]any) {
-	dl.withFields(ctx, fields, false).Warn(content)
+	if dl.log.Core().Enabled(zap.WarnLevel) {
+		dl.withFields(ctx, fields, false).Warn(content)
+	}
 }
 
 func (dl *DgLogger) Errorw(ctx *dgctx.DgContext, content string, fields map[string]any) {
-	dl.withFields(ctx, fields, true).Error(content)
+	if dl.log.Core().Enabled(zap.ErrorLevel) {
+		dl.withFields(ctx, fields, true).Error(content)
+	}
 }
 
 func (dl *DgLogger) Fatalw(ctx *dgctx.DgContext, content string, fields map[string]any) {
@@ -200,56 +227,63 @@ func (dl *DgLogger) Panicw(ctx *dgctx.DgContext, content string, fields map[stri
 	dl.withFields(ctx, fields, true).Panic(content)
 }
 
-func (dl *DgLogger) SetLevel(level string) {
-	dl.log.SetLevel(parseLevel(level))
-}
-
 func SetExtraFields(ctx *dgctx.DgContext, fields map[string]any) {
 	ctx.SetExtraKeyValue(extraFieldsKey, fields)
 }
 
-func (dl *DgLogger) withFields(ctx *dgctx.DgContext, fields map[string]any, printFileLine bool) *log.Entry {
-	if !printFileLine && len(fields) == 0 && ctx.GetExtraValue(logEntryKey) != nil {
-		return ctx.GetExtraValue(logEntryKey).(*log.Entry)
+func (dl *DgLogger) withFields(ctx *dgctx.DgContext, fields map[string]any, printFileLine bool) *zap.Logger {
+	allFields := []zap.Field{
+		zap.String(constants.TraceId, ctx.TraceId),
 	}
 
-	allFields := log.Fields{constants.TraceId: ctx.TraceId}
 	if ctx.UserId > 0 {
-		allFields[constants.UID] = ctx.UserId
+		allFields = append(allFields, zap.Int64(constants.UID, ctx.UserId))
 	}
 
 	if len(fields) > 0 {
-		maps.Copy(allFields, fields)
+		for k, v := range fields {
+			allFields = append(allFields, zap.Any(k, v))
+		}
 	}
 
 	extraFields := ctx.GetExtraValue(extraFieldsKey)
 	if extraFields != nil {
 		fds := extraFields.(map[string]any)
 		if len(fds) > 0 {
-			maps.Copy(allFields, fds)
+			for k, v := range fds {
+				allFields = append(allFields, zap.Any(k, v))
+			}
 		}
 	}
 
 	if printFileLine {
-		_, file, line, _ := runtime.Caller(3)
-		allFields["file"] = file
-		allFields["line"] = strconv.Itoa(line)
-
-		return dl.log.WithFields(allFields)
-	} else if len(fields) > 0 {
-		return dl.log.WithFields(allFields)
-	} else {
-		entry := dl.log.WithFields(allFields)
-		ctx.SetExtraKeyValue(logEntryKey, entry)
-		return entry
+		_, file, line, _ := runtime.Caller(2)
+		allFields = append(allFields,
+			zap.String("file", file),
+			zap.String("line", strconv.Itoa(line)),
+		)
 	}
+
+	return dl.log.With(allFields...)
 }
 
-func parseLevel(level string) logrus.Level {
-	logLevel, err := logrus.ParseLevel(level)
-	if err != nil {
-		logLevel = logrus.DebugLevel
+func parseLevel(level string) zapcore.Level {
+	switch level {
+	case PanicLevel:
+		return zap.PanicLevel
+	case FatalLevel:
+		return zap.FatalLevel
+	case ErrorLevel:
+		return zap.ErrorLevel
+	case WarnLevel:
+		return zap.WarnLevel
+	case InfoLevel:
+		return zap.InfoLevel
+	case DebugLevel:
+		return zap.DebugLevel
+	case TraceLevel:
+		return zap.DebugLevel // zap 没有 trace 级别，使用 debug 代替
+	default:
+		return zap.DebugLevel
 	}
-
-	return logLevel
 }

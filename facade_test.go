@@ -2,8 +2,9 @@ package dglogger
 
 import (
 	"errors"
-	dgctx "github.com/darwinOrg/go-common/context"
 	"testing"
+
+	dgctx "github.com/darwinOrg/go-common/context"
 )
 
 func TestDebugf(t *testing.T) {
@@ -22,6 +23,10 @@ func TestInfo(t *testing.T) {
 
 func TestInfoln(t *testing.T) {
 	Infoln(dgctx.SimpleDgContext(), "abc", int64(789))
+}
+
+func TestErrorf(t *testing.T) {
+	Errorf(dgctx.SimpleDgContext(), "abc: %d", int64(789))
 }
 
 func TestLogEntry(t *testing.T) {
