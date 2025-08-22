@@ -33,8 +33,6 @@ const (
 	InfoLevel = "info"
 	// DebugLevel level. Usually only enabled when debugging. Very verbose logging.
 	DebugLevel = "debug"
-	// TraceLevel level. Designates finer-grained informational events than the Debug.
-	TraceLevel = "trace"
 )
 
 const (
@@ -236,6 +234,10 @@ func (dl *DgLogger) withFields(ctx *dgctx.DgContext, fields map[string]any, prin
 		zap.String(constants.TraceId, ctx.TraceId),
 	}
 
+	if ctx.SpanId != "" {
+		allFields = append(allFields, zap.String(constants.SpanId, ctx.SpanId))
+	}
+
 	if ctx.UserId > 0 {
 		allFields = append(allFields, zap.Int64(constants.UID, ctx.UserId))
 	}
@@ -281,8 +283,6 @@ func parseLevel(level string) zapcore.Level {
 		return zap.InfoLevel
 	case DebugLevel:
 		return zap.DebugLevel
-	case TraceLevel:
-		return zap.DebugLevel // zap 没有 trace 级别，使用 debug 代替
 	default:
 		return zap.DebugLevel
 	}

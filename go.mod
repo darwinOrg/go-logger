@@ -3,7 +3,7 @@ module github.com/darwinOrg/go-logger
 go 1.23.1
 
 require (
-	github.com/darwinOrg/go-common v0.2.5
+	github.com/darwinOrg/go-common v0.2.6
 	github.com/json-iterator/go v1.1.12
 	github.com/modern-go/reflect2 v1.0.2
 	github.com/natefinch/lumberjack v2.0.0+incompatible
