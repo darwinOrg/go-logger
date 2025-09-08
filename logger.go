@@ -259,7 +259,7 @@ func (dl *DgLogger) withFields(ctx *dgctx.DgContext, fields map[string]any, prin
 	}
 
 	if printFileLine {
-		_, file, line, _ := runtime.Caller(2)
+		_, file, line, _ := runtime.Caller(3)
 		allFields = append(allFields,
 			zap.String("file", file),
 			zap.String("line", strconv.Itoa(line)),
