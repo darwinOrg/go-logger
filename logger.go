@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 	"runtime"
-	"strconv"
+	"strings"
 
 	"github.com/darwinOrg/go-common/constants"
 	dgctx "github.com/darwinOrg/go-common/context"
@@ -45,6 +45,10 @@ const (
 	extraFieldsKey         = "extraLogFields"
 )
 
+func init() {
+	zap.StackSkip("stacktrace", 2)
+}
+
 type DgLogger struct {
 	log *zap.Logger
 }
@@ -77,8 +81,8 @@ func NewDgLogger(level string, timestampFormat string, out io.Writer) *DgLogger 
 		parseLevel(level),
 	)
 
-	// 创建 logger
-	logger := zap.New(core, zap.AddCallerSkip(1))
+	// 创建 logger, 只在错误级别及以上记录堆栈
+	logger := zap.New(core, zap.AddStacktrace(zapcore.ErrorLevel), zap.AddCaller(), zap.AddCallerSkip(2))
 
 	return &DgLogger{log: logger}
 }
@@ -259,11 +263,27 @@ func (dl *DgLogger) withFields(ctx *dgctx.DgContext, fields map[string]any, prin
 	}
 
 	if printFileLine {
-		_, file, line, _ := runtime.Caller(3)
-		allFields = append(allFields,
-			zap.String("file", file),
-			zap.String("line", strconv.Itoa(line)),
-		)
+		// 动态查找真正的调用者
+		var file string
+		var line int
+		var found bool
+
+		// 从第3层开始向上查找，直到找到非logger包中的调用者
+		for i := 3; i <= 10; i++ {
+			_, f, l, ok := runtime.Caller(i)
+			if ok && !strings.Contains(f, "go-logger/logger.go") {
+				file, line = f, l
+				found = true
+				break
+			}
+		}
+
+		if found {
+			allFields = append(allFields,
+				zap.String("file", file),
+				zap.Int("line", line),
+			)
+		}
 	}
 
 	return dl.log.With(allFields...)
