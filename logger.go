@@ -88,6 +88,11 @@ func NewDgLogger(level string, timestampFormat string, out io.Writer) *DgLogger 
 }
 
 func getDefaultLogLevel() string {
+	logLevel := os.Getenv("LOG_LEVEL")
+	if logLevel != "" {
+		return logLevel
+	}
+
 	return utils.IfReturn(dgsys.IsProd(), InfoLevel, DebugLevel)
 }
 
