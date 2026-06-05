@@ -3,9 +3,9 @@ module github.com/darwinOrg/go-logger
 go 1.23.1
 
 require (
-	github.com/darwinOrg/go-common v0.2.23
+	github.com/darwinOrg/go-common v0.2.28
 	github.com/natefinch/lumberjack v2.0.0+incompatible
-	go.uber.org/zap v1.27.1
+	go.uber.org/zap v1.28.0
 )
 
 require (

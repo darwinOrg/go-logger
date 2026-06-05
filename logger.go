@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strings"
 
+	dgcoll "github.com/darwinOrg/go-common/collection"
 	"github.com/darwinOrg/go-common/constants"
 	dgctx "github.com/darwinOrg/go-common/context"
 	dgsys "github.com/darwinOrg/go-common/sys"
@@ -44,6 +45,12 @@ const (
 	DefaultCompress        = true      // 是否压缩/归档旧的日志文件
 	extraFieldsKey         = "extraLogFields"
 )
+
+var ignoreCallerFlags = []string{"go-logger/logger.go"}
+
+func AppendIgnoreCallerFlags(flags ...string) {
+	ignoreCallerFlags = append(ignoreCallerFlags, flags...)
+}
 
 func init() {
 	zap.StackSkip("stacktrace", 2)
@@ -273,10 +280,10 @@ func (dl *DgLogger) withFields(ctx *dgctx.DgContext, fields map[string]any, prin
 		var line int
 		var found bool
 
-		// 从第3层开始向上查找，直到找到非logger包中的调用者
+		// 从第3层开始向上查找，直到找到不在忽略调用标志包中的调用者
 		for i := 3; i <= 10; i++ {
 			_, f, l, ok := runtime.Caller(i)
-			if ok && !strings.Contains(f, "go-logger/logger.go") {
+			if ok && dgcoll.NoneMatch(ignoreCallerFlags, func(ignoreCallerFlag string) bool { return strings.Contains(f, ignoreCallerFlag) }) {
 				file, line = f, l
 				found = true
 				break
