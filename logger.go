@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"runtime"
-	"strings"
 
 	dgcoll "github.com/darwinOrg/go-common/collection"
 	"github.com/darwinOrg/go-common/constants"
@@ -46,10 +46,12 @@ const (
 	extraFieldsKey         = "extraLogFields"
 )
 
-var ignoreCallerFlags = []string{"go-logger/logger.go"}
+var ignoreCallerFlags = []*regexp.Regexp{regexp.MustCompile("go-logger(@[\\w.]+)?/logger\\.go$")}
 
 func AppendIgnoreCallerFlags(flags ...string) {
-	ignoreCallerFlags = append(ignoreCallerFlags, flags...)
+	ignoreCallerFlags = append(ignoreCallerFlags, dgcoll.MapToList(flags, func(flag string) *regexp.Regexp {
+		return regexp.MustCompile(flag)
+	})...)
 }
 
 func init() {
@@ -276,14 +278,16 @@ func (dl *DgLogger) withFields(ctx *dgctx.DgContext, fields map[string]any, prin
 
 	if printFileLine {
 		// 动态查找真正的调用者
-		var file string
-		var line int
-		var found bool
+		var (
+			file  string
+			line  int
+			found bool
+		)
 
 		// 从第3层开始向上查找，直到找到不在忽略调用标志包中的调用者
 		for i := 3; i <= 10; i++ {
 			_, f, l, ok := runtime.Caller(i)
-			if ok && dgcoll.NoneMatch(ignoreCallerFlags, func(ignoreCallerFlag string) bool { return strings.Contains(f, ignoreCallerFlag) }) {
+			if ok && dgcoll.NoneMatch(ignoreCallerFlags, func(re *regexp.Regexp) bool { return re.MatchString(f) }) {
 				file, line = f, l
 				found = true
 				break
