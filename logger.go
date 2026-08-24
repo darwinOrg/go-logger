@@ -37,7 +37,7 @@ const (
 )
 
 const (
-	DefaultTimestampFormat = "2006-01-02 15:04:05.999999"
+	DefaultTimestampFormat = "2 15:04:05.999"
 	DefaultFilename        = "app.log" // 日志文件路径
 	DefaultMaxSize         = 100       // 每个日志文件的最大尺寸（MB）
 	DefaultMaxBackups      = 10        // 保留旧日志文件的最大数量
@@ -45,6 +45,8 @@ const (
 	DefaultCompress        = true      // 是否压缩/归档旧的日志文件
 	extraFieldsKey         = "extraLogFields"
 )
+
+var callerVersionRegexp = regexp.MustCompile(`^(.+?)@[^/]+(/.*)$`)
 
 var ignoreCallerFlags = []*regexp.Regexp{regexp.MustCompile("go-logger(@[\\w.]+)?/logger\\.go$")}
 
@@ -79,6 +81,21 @@ func NewDgLogger(level string, timestampFormat string, out io.Writer) *DgLogger 
 	config := zap.NewProductionEncoderConfig()
 	config.EncodeTime = zapcore.TimeEncoderOfLayout(timestampFormat)
 	config.EncodeLevel = zapcore.CapitalLevelEncoder
+
+	// 自定义 Caller 格式：去掉模块版本信息，只保留 模块名/文件名:行号
+	config.EncodeCaller = func(caller zapcore.EntryCaller, enc zapcore.PrimitiveArrayEncoder) {
+		// 通过 @ 分割，去掉版本部分
+		path := caller.TrimmedPath()
+		if m := callerVersionRegexp.FindStringSubmatchIndex(path); m != nil {
+			// 只拼接：模块名 + /文件名:行号
+			var buf []byte
+			buf = callerVersionRegexp.ExpandString(buf, "$1$2", path, m)
+			enc.AppendString(string(buf))
+			return
+		}
+		// 如果没有 @，直接输出原始路径
+		enc.AppendString(path)
+	}
 
 	// 创建 encoder
 	encoder := zapcore.NewConsoleEncoder(config)
