@@ -65,7 +65,7 @@ func formatStack(raw string) string {
 		parts = append(parts, funcLine)
 	}
 
-	return strings.Join(parts, " <= ")
+	return strings.Join(parts, " | ")
 }
 
 // shortenPath 保留路径最后 2 段
