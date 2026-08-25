@@ -97,12 +97,11 @@ func NewDgLogger(level string, timestampFormat string, out io.Writer) *DgLogger 
 		enc.AppendString(path)
 	}
 
-	// 创建 encoder
 	encoder := zapcore.NewConsoleEncoder(config)
+	myEncoder := &customEncoder{Encoder: encoder}
 
-	// 创建 core
 	core := zapcore.NewCore(
-		encoder,
+		myEncoder,
 		zapcore.AddSync(out),
 		parseLevel(level),
 	)
