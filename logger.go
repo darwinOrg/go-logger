@@ -97,6 +97,14 @@ func NewDgLogger(level string, timestampFormat string, out io.Writer) *DgLogger 
 		enc.AppendString(path)
 	}
 
+	// 自定义 Encode 级别： INFO 级别不写入任何内容，其它级别正常输出
+	config.EncodeLevel = func(l zapcore.Level, enc zapcore.PrimitiveArrayEncoder) {
+		if l == zapcore.InfoLevel {
+			return
+		}
+		enc.AppendString(l.CapitalString())
+	}
+
 	encoder := zapcore.NewConsoleEncoder(config)
 	myEncoder := &customEncoder{Encoder: encoder}
 
